@@ -7,19 +7,20 @@ mAIro-gym-retro
 
 ## Requirements
 - Python 3.8
-- Configurar Venv com o Python 3.8
+- Config Venv with Python 3.8
 - pip install gym==0.21.0
 - pip install gym-retro
 
-## Install Python 3.8
+## Summary
 1. Download Tarball from [Python.org](https://www.python.org/downloads/release/python-3820/)
 2. Unzip to folder
 3. On the folder run ```sudo apt-get install -y build-essential```
 4. Run ```./configure --enable-optimizations``` to build
 5. Run ```make -j$(nproc)```, now compilling the source
-6. Run ```sudo make install```, to fish installation
+6. Run ```sudo make altinstall```, to fish installation
 7. Check the version ```python3.8 --version```
 
+### Terminal
 ```bash
 sudo apt update
 sudo apt install build-essential zlib1g-dev libncurses5-dev libgdbm-dev libnss3-dev libssl-dev libreadline-dev libffi-dev
@@ -33,6 +34,9 @@ make -j$(nproc)
 sudo make altinstall
 python3.8 --version
 ```
+---
+
+## Install Python 3.8
 
 When installing Python 3.8 from source on Linux, you may want to **altinstall** it rather than simply installing it. This ensures that Python 3.8 is installed without overwriting the default `python` or `python3` versions on your system, which could break system dependencies.
 
@@ -139,17 +143,6 @@ To **altinstall** Python 3.8, follow these steps:
 
 ---
 
-### Summary of the Key Command for `altinstall`:
-- **Altinstall** (instead of `install`) ensures that your Python 3.8 installation does not interfere with the system Python versions, especially on systems that rely on Python for critical system tools.
-
-```bash
-sudo make altinstall
-```
-
-This command will install Python 3.8 as `python3.8` without overwriting the default `python3` or `python` commands on your system.
-
-If you face any issues or need further assistance, feel free to ask!
-
 ## Config Env
 ```bash
 python3.8 -m venv marioenv #Create env named marioenv
@@ -157,10 +150,14 @@ source marioenv/bin/activate #Activate marioenv
 python --version #To check if Python is 3.8
 ```
 
-### REQUIREMENTS
+### Libs
 We will need some libs
+- ```pip install --upgrade pip``` Before running other pip commands
 - ```pip install gym==0.21.0```
 - ```pip install gym-retro``` 
+- ```pip install tensorflow``` 
+
+---
 
 ## Uninstall Pyton 3.8
 If you've installed Python 3.8 from source, uninstalling it is a bit more involved than with packages installed via a package manager (like `apt` on Ubuntu). Python doesn't include an automatic uninstall command when you install from source, so you'll need to manually remove the files associated with the installation.
@@ -262,8 +259,3 @@ Here’s how you can uninstall Python 3.8 that was built from source:
    If the command returns an error saying that `python3.8` is not found, it means the uninstallation was successful.
 
 ---
-
-### Additional Notes:
-- If you used a custom `prefix` with the `./configure` step, you should replace `/usr/local/` with your specified prefix path when removing the files.
-- If you have other versions of Python installed via package managers (like `apt`), they should remain unaffected by this process.
-- If you encounter any issues or if the uninstall didn’t work as expected, you may want to check for any leftover environment variables or paths that might still be pointing to the old Python 3.8 installation.
