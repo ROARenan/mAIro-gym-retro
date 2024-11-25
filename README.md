@@ -47,7 +47,7 @@ To **altinstall** Python 3.8, follow these steps:
 
    ```bash
    cd /tmp
-   wget https://www.python.org/ftp/python/3.8.10/Python-3.8.10.tgz
+   wget https://www.python.org/ftp/python/3.8.20/Python-3.8.20.tgz
    ```
 
    (Replace `3.8.10` with the desired version if necessary.)
@@ -76,7 +76,7 @@ To **altinstall** Python 3.8, follow these steps:
    Navigate to the extracted Python source directory:
 
    ```bash
-   cd Python-3.8.10
+   cd Python-3.8.20
    ```
 
    Run the `./configure` script. You can use the `--prefix` option to specify the installation directory if you don't want to use the default `/usr/local/` path. But for `altinstall`, you won't need to change the prefix unless you have a custom location.
@@ -107,7 +107,7 @@ To **altinstall** Python 3.8, follow these steps:
    python3.8 --version
    ```
 
-   This should output something like `Python 3.8.10`.
+   This should output something like `Python 3.8.20`.
 
 ### 7. **Install `pip` for Python 3.8**
 
