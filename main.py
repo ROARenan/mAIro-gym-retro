@@ -3,16 +3,21 @@ import numpy as np
 from rominfo import getXY, getRam
 
 # Lista de ações possíveis para Mario
-ACTIONS = [
-    [0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0],  # Direita
-    [0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0],  # Pulo
-    [0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0],  # Pulo rodando
-    [0, 0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0],  # Direita + Pulo
-    [0, 0, 0, 0, 0, 0, 0, 1, 0, 1, 0, 0],  # Direita + Pulo rodando
-    [0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0],  # Correr + Direita
-    [0, 0, 0, 0, 0, 0, 1, 1, 1, 0, 0, 0],  # Correr + Direita + Pulo
-    [0, 0, 0, 0, 0, 0, 1, 1, 0, 1, 0, 0],  # Correr + Direita + Pulo rodando
-]
+actions_map = {'noop':0, 'down':32, 'up':16, 'jump':1, 'spin':3, 
+               'left':64, 'jumpleft':65, 'runleft':66, 'runjumpleft':67, 
+               'right':128, 'jumpright':129, 'runright':130, 'runjumpright':131, 
+               'spin':256, 'spinright':384, 'runspinright':386, 'spinleft':320, 'spinrunleft':322
+               }
+
+# Vamos usar apenas um subconjunto
+actions_list = [66,130,128,131,386]
+
+def dec2bin(dec):
+    binN = []
+    while dec != 0:
+        binN.append(dec % 2)
+        dec = dec / 2
+    return binN
 
 # Função para criar o ambiente
 def create_env():
@@ -31,6 +36,16 @@ def calculate_reward(ram, last_x_position):
 
     return reward, marioX
 
+def get_lives(env):
+    """
+    Obtém o número de vidas do jogador no Super Mario World.
+    O número de vidas está armazenado no endereço 0x7E0DBE.
+    """
+    lives_address = 0x0DBE  # Endereço de memória relativo para vidas no Super Mario World
+    ram = env.get_ram()  # Obtém a memória RAM do jogo
+    lives_minus_one = ram[lives_address]  # Lê o valor no endereço especificado
+    return lives_minus_one + 1  # Ajusta para refletir o número correto de vidas
+
 # Main
 if __name__ == "__main__":
     env = create_env()
@@ -38,16 +53,19 @@ if __name__ == "__main__":
     
     last_x_position = 0  # Posição inicial do Mario no eixo X
     total_reward = 0
+    reset_live = 5
 
     while True:
         env.render()  # Mostra o jogo na tela
 
         # Escolhe uma ação aleatória da lista de ações definidas
-        action = ACTIONS[np.random.randint(len(ACTIONS))]
-        state, _, done, info = env.step(action)
+        action = actions_list[np.random.randint(len(actions_list))]
+        state, _, done, info = env.step(dec2bin(action))
 
         # Obtemos a RAM do jogo
         ram = getRam(env)
+        if get_lives(env) != 5:
+            done = True
 
         # Calcula a recompensa baseada no deslocamento horizontal
         reward, last_x_position = calculate_reward(ram, last_x_position)
