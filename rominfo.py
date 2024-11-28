@@ -132,3 +132,33 @@ def getLives(env):
     ram = env.get_ram()  # Obtém a memória RAM do jogo
     lives_minus_one = ram[lives_address]  # Lê o valor no endereço especificado
     return lives_minus_one + 1  # Ajusta para refletir o número correto de vidas
+
+def getStuckStatus(env):
+    """
+    Verifica se Mario está em contato com uma parede ou bloqueado em qualquer direção.
+    Utiliza o status de bloqueio armazenado no endereço 0x7E0077.
+    
+    Retorna:
+        stuck_status (dict): Um dicionário com o status de bloqueio em cada direção:
+            - "up": Bloqueado acima.
+            - "down": Bloqueado abaixo.
+            - "left": Bloqueado à esquerda.
+            - "right": Bloqueado à direita.
+            - "middle": Mario está no meio de um bloco.
+            - "screen_side": Mario está tocando a lateral da tela.
+    """
+    status_address = 0x0077  # Endereço na RAM para o status de bloqueio
+    ram = env.get_ram()  # Obtém a memória RAM do jogo
+    status = ram[status_address]  # Lê o valor no endereço especificado
+
+    # Decodifica os bits do status
+    stuck_status = {
+        "up": bool(status & 0b00001000),         # Bloqueado acima (U)
+        "down": bool(status & 0b00000100),       # Bloqueado abaixo (D)
+        "left": bool(status & 0b00000010),       # Bloqueado à esquerda (L)
+        "right": bool(status & 0b00000001),      # Bloqueado à direita (R)
+        "middle": bool(status & 0b00100000),     # No meio de um bloco (M)
+        "screen_side": bool(status & 0b10000000) # Tocando a lateral da tela (S)
+    }
+
+    return stuck_status

@@ -1,16 +1,6 @@
 import retro
 import numpy as np
-from rominfo import getXY, getRam
-
-# Lista de ações possíveis para Mario
-actions_map = {'noop':0, 'down':32, 'up':16, 'jump':1, 'spin':3, 
-               'left':64, 'jumpleft':65, 'runleft':66, 'runjumpleft':67, 
-               'right':128, 'jumpright':129, 'runright':130, 'runjumpright':131, 
-               'spin':256, 'spinright':384, 'runspinright':386, 'spinleft':320, 'spinrunleft':322
-               }
-
-# Vamos usar apenas um subconjunto
-actions_list = [66,130,128,131,386]
+from rominfo import *
 
 def dec2bin(dec):
     binN = []
@@ -20,61 +10,71 @@ def dec2bin(dec):
     return binN
 
 # Função para criar o ambiente
-def create_env():
+def createEnv():
     return retro.make(game='SuperMarioWorld-Snes', state='YoshiIsland2', record=False)
 
-# Recompensa baseada no deslocamento
-def calculate_reward(ram, last_x_position):
-    marioX, _, _, _ = getXY(ram)  # Obtém a posição X de Mario
-    delta_x = marioX - last_x_position  # Diferença no deslocamento horizontal
-
-    # Recompensa positiva para deslocamento à direita, penalidade para esquerda ou falta de movimento
-    if delta_x > 0:
-        reward = delta_x  # Movimento positivo gera recompensa proporcional
-    elif delta_x <= 0:
-        reward = -1  # Movimento para a esquerda ou falta de movimento gera penalidade fixa
-
-    return reward, marioX
-
-def get_lives(env):
+# Função para determinar a próxima ação baseada na posição de Mario e nos sprites
+def heuristicAction(mario_pos, sprites, ram, env):
     """
-    Obtém o número de vidas do jogador no Super Mario World.
-    O número de vidas está armazenado no endereço 0x7E0DBE.
-    """
-    lives_address = 0x0DBE  # Endereço de memória relativo para vidas no Super Mario World
-    ram = env.get_ram()  # Obtém a memória RAM do jogo
-    lives_minus_one = ram[lives_address]  # Lê o valor no endereço especificado
-    return lives_minus_one + 1  # Ajusta para refletir o número correto de vidas
+    Determina a ação de Mario baseada na heurística:
+    - Move para a direita.
+    - Pula se houver obstáculos, degraus ou bloqueio à direita.
+    - Se estiver bloqueado à direita, faz um long jump (pulo normal seguido de um pulo longo).
 
-# Main
+    Args:
+        mario_pos (tuple): Posição de Mario (x, y, layer1x, layer1y).
+        sprites (list): Lista de sprites na tela.
+        ram (numpy.array): Memória RAM do jogo.
+        env: Ambiente Retro para leitura da RAM.
+
+    Returns:
+        action (list): Lista de ações para o ambiente Retro (duas ações se for long jump).
+    """
+    mario_x, mario_y, _, _ = mario_pos
+
+    # Ação padrão: mover para a direita
+    action = [dec2bin(130)]  # Primeira ação: mover para a direita
+
+    # Verifica bloqueios usando a função getStuckInWall
+    stuck_status = getStuckStatus(env)
+    if stuck_status["right"]:  # Bloqueado à direita
+        # Pulo normal e, em seguida, pulo longo
+        action = [dec2bin(131), dec2bin(131)]  # Executa dois pulos
+        return action
+
+    # Verifica se há sprites (inimigos ou obstáculos) próximos
+    for sprite in sprites:
+        sprite_x, sprite_y = sprite['x'], sprite['y']
+        if 0 < sprite_x - mario_x < 50 and sprite_y <= mario_y + 30:  # Obstáculo à frente
+            action = [dec2bin(131)]  # Pular
+            return action
+
+    return action
+
 if __name__ == "__main__":
-    env = create_env()
+    env = createEnv()
     state = env.reset()
-    
-    last_x_position = 0  # Posição inicial do Mario no eixo X
     total_reward = 0
-    reset_live = 5
 
-    while True:
-        env.render()  # Mostra o jogo na tela
-
-        # Escolhe uma ação aleatória da lista de ações definidas
-        action = actions_list[np.random.randint(len(actions_list))]
-        state, _, done, info = env.step(dec2bin(action))
-
-        # Obtemos a RAM do jogo
+    for step in range(10000):  # Limite de passos
+        env.render()
         ram = getRam(env)
-        if get_lives(env) != 5:
-            done = True
 
-        # Calcula a recompensa baseada no deslocamento horizontal
-        reward, last_x_position = calculate_reward(ram, last_x_position)
-        total_reward += reward
+        # Obtém informações do jogo
+        mario_pos = getXY(ram)  # Posição de Mario
+        sprites = getSprites(ram)  # Informações dos sprites na tela
 
-        print(f"Reward: {reward}, Total Reward: {total_reward}, X Position: {last_x_position}")
+        # Determina a ação usando heurística
+        actions = heuristicAction(mario_pos, sprites, ram, env)  # Recebe uma lista de ações
 
-        if done:
-            print(f"Game over! Total Reward: {total_reward}")
+        # Executa as ações no ambiente
+        for action in actions:
+            state, reward, done, info = env.step(action)
+            total_reward += reward
+
+        # Checa se Mario perdeu todas as vidas
+        if getLives(env) < 5 or env.data.is_done():
+            print(f"Game Over! Total Reward: {total_reward}")
             break
 
     env.close()

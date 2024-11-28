@@ -1,6 +1,6 @@
 import retro
 import numpy as np
-from rominfo import getXY, getRam, getSprites, getLives, getTile
+from rominfo import *
 
 def dec2bin(dec):
     binN = []
@@ -14,25 +14,40 @@ def createEnv():
     return retro.make(game='SuperMarioWorld-Snes', state='YoshiIsland2', record=False)
 
 # Função para determinar a próxima ação baseada na posição de Mario e nos sprites
-def heuristicAction(mario_pos, sprites, ram):
+def heuristicAction(mario_pos, sprites, ram, env):
+    """
+    Determina a ação de Mario baseada na heurística:
+    - Move para a direita.
+    - Pula se houver obstáculos, degraus ou bloqueio à direita.
+    - Se estiver bloqueado à direita, faz um long jump (pulo normal seguido de um pulo longo).
+
+    Args:
+        mario_pos (tuple): Posição de Mario (x, y, layer1x, layer1y).
+        sprites (list): Lista de sprites na tela.
+        ram (numpy.array): Memória RAM do jogo.
+        env: Ambiente Retro para leitura da RAM.
+
+    Returns:
+        action (list): Lista de ações para o ambiente Retro (duas ações se for long jump).
+    """
     mario_x, mario_y, _, _ = mario_pos
 
-    # Heurística: Avance para a direita
-    action = dec2bin(130)
+    # Ação padrão: mover para a direita
+    action = [dec2bin(130)]  # Primeira ação: mover para a direita
 
-    # Verifica se há sprites (como inimigos ou obstáculos) próximos
+    # Verifica bloqueios usando a função getStuckInWall
+    stuck_status = getStuckStatus(env)
+    if stuck_status["right"]:  # Bloqueado à direita
+        # Pulo normal e, em seguida, pulo longo
+        action = [dec2bin(131), dec2bin(131)]  # Executa dois pulos
+        return action
+
+    # Verifica se há sprites (inimigos ou obstáculos) próximos
     for sprite in sprites:
         sprite_x, sprite_y = sprite['x'], sprite['y']
         if 0 < sprite_x - mario_x < 50 and sprite_y <= mario_y + 30:  # Obstáculo à frente
-            action = dec2bin(131)  # Pular
-            break
-
-    # Verifica se há um bloco sólido no caminho de Mario
-    for offset_x in range(16, 50, 16):  # Checa 16 a 50 pixels à frente
-        tile = getTile(mario_x + offset_x, mario_y + 16, ram)  # Ponto um pouco abaixo de Mario
-        if tile != 0:  # Se houver bloco sólido
-            action = dec2bin(131)  # Pular
-            break
+            action = [dec2bin(131)]  # Pular
+            return action
 
     return action
 
@@ -46,15 +61,16 @@ if __name__ == "__main__":
         ram = getRam(env)
 
         # Obtém informações do jogo
-        mario_pos = getXY(ram)  # Posição do Mario
+        mario_pos = getXY(ram)  # Posição de Mario
         sprites = getSprites(ram)  # Informações dos sprites na tela
 
         # Determina a ação usando heurística
-        action = heuristicAction(mario_pos, sprites, ram)
+        actions = heuristicAction(mario_pos, sprites, ram, env)  # Recebe uma lista de ações
 
-        # Executa a ação no ambiente
-        state, reward, done, info = env.step(action)
-        total_reward += reward
+        # Executa as ações no ambiente
+        for action in actions:
+            state, reward, done, info = env.step(action)
+            total_reward += reward
 
         # Checa se Mario perdeu todas as vidas
         if getLives(env) < 5:
