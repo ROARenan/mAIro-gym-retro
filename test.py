@@ -96,7 +96,7 @@ def training_model(model, env, num_episodes=1000):
 # Criando o ambiente e o modelo
 env = createEnv()
 input_shape = 4  # Ajuste para o formato do seu estado
-actions = [66,130,128,131,386]
+actions = [130,128,131,386]
 
 model = build_model(input_shape, len(actions))
 

@@ -78,3 +78,10 @@ if __name__ == "__main__":
             break
 
     env.close()
+
+# Lista de ações possíveis para Mario
+# actions_map = {'noop':0, 'down':32, 'up':16, 'jump':1, 'spin':3, 
+#                'left':64, 'jumpleft':65, 'runleft':66, 'runjumpleft':67, 
+#                'right':128, 'jumpright':129, 'runright':130, 'runjumpright':131, 
+#                'spin':256, 'spinright':384, 'runspinright':386, 'spinleft':320, 'spinrunleft':322
+#                }
