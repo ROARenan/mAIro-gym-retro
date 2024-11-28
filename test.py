@@ -1,80 +1,104 @@
 import retro
 import numpy as np
+import tensorflow as tf
+from tensorflow.keras.models import Sequential
+from tensorflow.keras.layers import Dense
+from tensorflow.keras.optimizers import Adam
 from rominfo import *
 
-def dec2bin(dec):
-    binN = []
+# Função para converter número decimal para binário (exemplo para ações)
+def dec2bin(dec, num_bits):
+    binN = [0] * num_bits
+    idx = 0
     while dec != 0:
-        binN.append(dec % 2)
-        dec = dec / 2
+        binN[idx] = dec % 2
+        dec = dec // 2
+        idx += 1
     return binN
 
-# Função para criar o ambiente
+# Criação do ambiente
 def createEnv():
     return retro.make(game='SuperMarioWorld-Snes', state='YoshiIsland2', record=False)
 
-# Função para determinar a próxima ação baseada na posição de Mario e nos sprites
-def heuristicAction(mario_pos, sprites, ram, env):
-    """
-    Determina a ação de Mario baseada na heurística:
-    - Move para a direita.
-    - Pula se houver obstáculos, degraus ou bloqueio à direita.
-    - Se estiver bloqueado à direita, faz um long jump (pulo normal seguido de um pulo longo).
+# Função para construir o modelo
+def build_model(input_shape, num_actions):
+    model = Sequential()
+    
+    # Primeira camada densa
+    model.add(Dense(128, input_dim=input_shape, activation='relu'))
+    
+    # Camada de saída com num_actions neurônios (um para cada ação possível)
+    model.add(Dense(num_actions, activation='linear'))  # Saída contínua para Q-values
+    
+    model.compile(loss='mean_squared_error', optimizer=Adam())  # Usando MSE para Q-learning
+    return model
 
-    Args:
-        mario_pos (tuple): Posição de Mario (x, y, layer1x, layer1y).
-        sprites (list): Lista de sprites na tela.
-        ram (numpy.array): Memória RAM do jogo.
-        env: Ambiente Retro para leitura da RAM.
-
-    Returns:
-        action (list): Lista de ações para o ambiente Retro (duas ações se for long jump).
-    """
-    mario_x, mario_y, _, _ = mario_pos
-
-    # Ação padrão: mover para a direita
-    action = [dec2bin(130)]  # Primeira ação: mover para a direita
-
-    # Verifica bloqueios usando a função getStuckInWall
-    stuck_status = getStuckStatus(env)
-    if stuck_status["right"]:  # Bloqueado à direita
-        # Pulo normal e, em seguida, pulo longo
-        action = [dec2bin(131), dec2bin(131)]  # Executa dois pulos
-        return action
-
-    # Verifica se há sprites (inimigos ou obstáculos) próximos
-    for sprite in sprites:
-        sprite_x, sprite_y = sprite['x'], sprite['y']
-        if 0 < sprite_x - mario_x < 50 and sprite_y <= mario_y + 30:  # Obstáculo à frente
-            action = [dec2bin(131)]  # Pular
-            return action
-
-    return action
-
-if __name__ == "__main__":
-    env = createEnv()
-    state = env.reset()
-    total_reward = 0
-
-    for step in range(10000):  # Limite de passos
-        env.render()
-        ram = getRam(env)
-
-        # Obtém informações do jogo
-        mario_pos = getXY(ram)  # Posição de Mario
-        sprites = getSprites(ram)  # Informações dos sprites na tela
-
-        # Determina a ação usando heurística
-        actions = heuristicAction(mario_pos, sprites, ram, env)  # Recebe uma lista de ações
-
-        # Executa as ações no ambiente
-        for action in actions:
-            state, reward, done, info = env.step(action)
+# Função para treinar o modelo no jogo
+def training_model(model, env, num_episodes=1000):
+    actions = [66, 130, 128, 131, 386]  # As possíveis ações
+    num_actions = len(actions)
+    
+    for episode in range(num_episodes):
+        env.reset()
+        ram_data = getRam(env)  # Obtendo a memória do jogo
+        state = getXY(ram_data)  # Obtendo as posições de Mario e outros elementos
+        state_input = np.array(state).reshape((1, -1))  # Transformando o estado em um formato adequado
+        total_reward = 0
+        done = False
+        pos_count = 0
+        mario_last_pos = (state[0],state[1])
+        
+        while not done and getLives(env) >= 5:
+            env.render()
+            # Selecionando a ação usando a rede neural
+            q_values = model.predict(state_input)  # Obtendo Q-values para cada ação
+            action = np.argmax(q_values[0])  # Escolhendo a ação com maior Q-value
+            
+            # Convertendo a ação para binário usando a função dec2bin
+            action_bin = dec2bin(actions[action], num_bits=9)  # Número de bits dependendo da representação binária da ação
+            
+            # Tomando a ação no ambiente
+            next_state, reward, done, info = env.step(action_bin)
+            
+            # Coletando os dados para treinamento
             total_reward += reward
+            next_ram_data = getRam(env)  # Obtendo a memória para o próximo estado
+            next_state_input = getXY(next_ram_data)  # Obtendo as posições para o próximo estado
+            if mario_last_pos[0] == next_state_input[0] and mario_last_pos[1] == next_state_input[1]:
+                pos_count += 1
+                if pos_count >= 60:
+                    done = True
+            else:
+                pos_count = 0
+            mario_last_pos = (next_state_input[0],next_state_input[1])
+            print(f"Parado a {pos_count} frames")
 
-        # Checa se Mario perdeu todas as vidas
-        if getLives(env) < 5:
-            print(f"Game Over! Total Reward: {total_reward}")
-            break
+            next_state_input = np.array(next_state_input).reshape((1, -1))  # Formatando para o modelo
+            
+            
 
-    env.close()
+            # Estimando o Q-value target
+            next_q_values = model.predict(next_state_input)
+            target = reward + 0.99 * np.max(next_q_values)  # Estimativa de Q-value
+            
+            # Atualizando o Q-value da ação tomada
+            q_values[0][action] = target
+            
+            # Treinando o modelo
+            model.fit(state_input, q_values, epochs=1, verbose=0)
+            
+            # Atualizando o estado
+            state_input = next_state_input
+        
+        print(f'Episódio {episode + 1}/{num_episodes} | Recompensa total: {total_reward}')
+
+
+# Criando o ambiente e o modelo
+env = createEnv()
+input_shape = 4  # Ajuste para o formato do seu estado
+actions = [66,130,128,131,386]
+
+model = build_model(input_shape, len(actions))
+
+# Treinando o modelo
+training_model(model, env)

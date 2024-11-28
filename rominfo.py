@@ -23,7 +23,7 @@ def getXY(ram):
     layer1x = ram[0x1B]*256 + ram[0x1A]
     layer1y = ram[0x1D]*256 + ram[0x1C]
     
-    return marioX.astype(np.int16), marioY.astype(np.int16), layer1x.astype(np.int16), layer1y.astype(np.int16)
+    return (marioX.astype(np.int16), marioY.astype(np.int16), layer1x.astype(np.int16), layer1y.astype(np.int16))
 
 def getSprites(ram):
   '''
@@ -132,6 +132,22 @@ def getLives(env):
     ram = env.get_ram()  # Obtém a memória RAM do jogo
     lives_minus_one = ram[lives_address]  # Lê o valor no endereço especificado
     return lives_minus_one + 1  # Ajusta para refletir o número correto de vidas
+
+def getScore(env):
+  """
+  Obtem o score do jogador atual em 0x7E0F34.
+  O valor eh salvo em HEX e precisa ser convertido
+
+  return:
+    score_dec: O score atual do jogador convertido para decimal
+  """
+
+  score_address = 0x0F34
+  ram = env.get_ram()
+  score_hex = ram[score_address]
+  score_dec = int(str(score_hex), 16)
+
+  return score_dec
 
 def getStuckStatus(env):
     """
