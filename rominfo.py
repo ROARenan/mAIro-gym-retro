@@ -51,7 +51,7 @@ def getSprites(ram):
         size = 1
         if spriteSize == 0:
           size = 4
-        sprites.append({'x': spriteX, 'y': spriteY, 'size': size})
+        sprites.append({'id':spriteId,'x': spriteX, 'y': spriteY, 'size': size})
       
   return sprites
       
@@ -123,3 +123,12 @@ def getRam(env):
     return np.array(list(env.data.memory.blocks[8257536]))
     
 
+def getLives(env):
+    """
+    Obtém o número de vidas do jogador no Super Mario World.
+    O número de vidas está armazenado no endereço 0x7E0DBE.
+    """
+    lives_address = 0x0DBE  # Endereço de memória relativo para vidas no Super Mario World
+    ram = env.get_ram()  # Obtém a memória RAM do jogo
+    lives_minus_one = ram[lives_address]  # Lê o valor no endereço especificado
+    return lives_minus_one + 1  # Ajusta para refletir o número correto de vidas

@@ -2,7 +2,7 @@
 mAIro-gym-retro
 
 [MarioAStar Base](https://folivetti.github.io/courses/IA/Pratica/Mario/MarioAStar.zip) projeto base do para ler os inputs e dados da ROM do SMW
-
+[Using Deep Reinforcement Learning To Play Atari Space Invaders](https://chloeewang.medium.com/using-deep-reinforcement-learning-to-play-atari-space-invaders-8d5159aa69ed)
 
 
 ## Requirements
