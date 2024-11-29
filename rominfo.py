@@ -178,3 +178,29 @@ def getStuckStatus(env):
     }
 
     return stuck_status
+
+def getTimer(env):
+    """
+    Obtém o valor atual do timer do jogo.
+    O timer está localizado em 0x7E0F31 (centenas), 0x7E0F32 (dezenas), e 0x7E0F33 (unidades).
+
+    return:
+        timer_value: O valor do timer como um número decimal.
+    """
+    # Endereços do timer
+    hundreds_address = 0x0F31
+    tens_address = 0x0F32
+    ones_address = 0x0F33
+
+    # Acessando a memória RAM do jogo
+    ram = env.get_ram()
+
+    # Obtendo os valores individuais
+    hundreds = ram[hundreds_address]
+    tens = ram[tens_address]
+    ones = ram[ones_address]
+
+    # Calculando o valor total do timer
+    timer_value = (hundreds * 100) + (tens * 10) + ones
+
+    return timer_value
