@@ -63,7 +63,7 @@ if __name__ == "__main__":
         # Obtém informações do jogo
         mario_pos = getXY(ram)  # Posição de Mario
         sprites = getSprites(ram)  # Informações dos sprites na tela
-
+        print(mario_pos)
         # Determina a ação usando heurística
         actions = heuristicAction(mario_pos, sprites, ram, env)  # Recebe uma lista de ações
 
