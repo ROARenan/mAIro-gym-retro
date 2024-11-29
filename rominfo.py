@@ -155,7 +155,7 @@ def getStuckStatus(env):
     Utiliza o status de bloqueio armazenado no endereço 0x7E0077.
     
     Retorna:
-        stuck_status (dict): Um dicionário com o status de bloqueio em cada direção:
+        stuck_status (dict): Um dicionário com o status booleano de bloqueio em cada direção:
             - "up": Bloqueado acima.
             - "down": Bloqueado abaixo.
             - "left": Bloqueado à esquerda.
