@@ -204,3 +204,19 @@ def getTimer(env):
     timer_value = (hundreds * 100) + (tens * 10) + ones
 
     return timer_value
+
+def getBonusStars(env):
+    """
+    Obtém a contagem de estrelas bonus vermelhas do Mario $7E0F48
+
+    return:
+        star_counter: contagem de estrelas bonus do Mario
+    """
+    star_adress = 0x0F48
+
+    # Acessando a memória RAM do jogo
+    ram = env.get_ram()
+
+    star_counter = ram[star_adress]
+
+    return star_counter

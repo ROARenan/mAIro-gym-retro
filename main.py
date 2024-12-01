@@ -61,9 +61,10 @@ if __name__ == "__main__":
         ram = getRam(env)
 
         # Obtém informações do jogo
-        mario_pos = getXY(ram)  # Posição de Mario
+        mario_pos = getXY(ram)
+        #print(mario_pos)  # Posição de Mario
         sprites = getSprites(ram)  # Informações dos sprites na tela
-        print(mario_pos)
+        #print(sprites)
         # Determina a ação usando heurística
         actions = heuristicAction(mario_pos, sprites, ram, env)  # Recebe uma lista de ações
 
@@ -72,6 +73,8 @@ if __name__ == "__main__":
             state, reward, done, info = env.step(action)
             total_reward += reward
         print("Score:",getScore(env))
+        print("Timer:",getTimer(env))
+        print("Stars:",getBonusStars(env))
         # Checa se Mario perdeu todas as vidas
         if getLives(env) < 5 or env.data.is_done():
             print(f"Game Over! Total Reward: {total_reward}")
@@ -85,3 +88,5 @@ if __name__ == "__main__":
 #                'right':128, 'jumpright':129, 'runright':130, 'runjumpright':131, 
 #                'spin':256, 'spinright':384, 'runspinright':386, 'spinleft':320, 'spinrunleft':322
 #                }
+
+#$7E1495	1 byte	Timer	Timer that controls fading and the level end scorecard. Increments and stops when it hits #$40. While it's ticking, the colors will fade; when it's done, $7E:003A through $7E:003D won't be read and the Layer 3 scrolling will be locked.

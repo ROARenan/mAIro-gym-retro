@@ -33,17 +33,18 @@ def createEnv():
 def build_model(input_shape, num_actions):
     model = Sequential()
     model.add(Dense(128, input_dim=input_shape, activation='relu'))  # Camada oculta
+    model.add(Dense(64, activation='relu'))  # Camada oculta adicional
     model.add(Dense(num_actions, activation='linear'))  # Saída com Q-values
     model.compile(loss='mean_squared_error', optimizer=Adam())  # Otimizador Adam
     return model
 
 # Geração de novos indivíduos (modelos) com mutação nos pesos
-def generate_offspring(parents, num_offspring=3):
+def generate_offspring(parents, input_shape, num_offspring=3):
     offspring = []
     for parent in parents:
         for _ in range(num_offspring):
             num_actions = parent.layers[-1].output_shape[1]  # Número de ações
-            child = build_model(input_shape=4, num_actions=num_actions)
+            child = build_model(input_shape=input_shape, num_actions=num_actions)
             
             # Copiar pesos do modelo pai e aplicar mutação leve
             parent_weights = parent.get_weights()
@@ -65,12 +66,28 @@ def custom_reward(reward, info, previous_info):
 
     return total_reward
 
+def add_sprites_to_input(state_input, sprites):
+    # Adiciona informações dos sprites (id, x, y, size)
+    for sprite in sprites:
+        state_input.append(sprite['x'])  # Posição X
+        state_input.append(sprite['y'])  # Posição Y
+        state_input.append(sprite['size'])  # Tamanho (ou outra informação relevante)
+
+    # Preenche com 0 se houver menos de 12 sprites
+    while len(sprites) < 12:
+        state_input.append(0)
+        state_input.append(0)
+        state_input.append(0)
+    
+    return state_input
+
 # Treinamento dos modelos
-def training_model(env, num_episodes=1000, num_individuals=3):
+def training_model(env, num_episodes=1000, num_individuals=3, decision_interval=45):
     actions = [66, 130, 128, 131, 386]  # Conjunto de ações possíveis
     num_actions = len(actions)
-    individuals = [build_model(input_shape=4, num_actions=num_actions) for _ in range(num_individuals)]
-    
+    input_shape = 42  # Número de entradas aumentou para incluir sprites (10 entradas + 12 sprites * 3 valores)
+    individuals = [build_model(input_shape=input_shape, num_actions=num_actions) for _ in range(num_individuals)]
+
     for episode in range(1, num_episodes + 1):
         scores = []  # Armazena pontuações dos indivíduos
         
@@ -78,30 +95,59 @@ def training_model(env, num_episodes=1000, num_individuals=3):
             env.reset()
             total_reward = 0
             done = False
+            step_count = 0  # Contador para o intervalo de decisões
             previous_info = {'coins': 0, 'lives': 4, 'score': 0, 'x': 16}
-            while not done and rominfo.getLives(env) >= 5 and total_reward > -1500:
-                env.render()
-                action = random.choice(actions)  # Seleção aleatória de ação
-                action_bin = dec2bin(action, num_bits=9)  # Representação binária da ação
-                
-                # Executa a ação e coleta dados do ambiente
-                next_state, reward, done, info = env.step(action_bin)
-                info["x"] = rominfo.getXY(rominfo.getRam(env))[0]
-                
+            current_action_bin = dec2bin(random.choice(actions), num_bits=9)  # Ação inicial
+            
+            max_steps = 10000
+            while not done and rominfo.getLives(env) >= 5 and total_reward > -500 and step_count < max_steps:
+                if step_count % 10 == 0:
+                    env.render()
+
+                try:
+                    sprites = rominfo.getSprites(rominfo.getRam(env))
+                except Exception as e:
+                    print(f"Erro ao obter sprites: {e}")
+                    sprites = []
+                stuck_status = rominfo.getStuckStatus(env)
+
+                state_input = [
+                    previous_info["x"], previous_info["coins"], previous_info["score"],
+                    previous_info["lives"], stuck_status["up"], stuck_status["down"],
+                    stuck_status["left"], stuck_status["right"], stuck_status["middle"],
+                    stuck_status["screen_side"]
+                ]
+                state_input = add_sprites_to_input(state_input, sprites)
+
+                if len(state_input) != input_shape:
+                    print(f"Tamanho inválido de state_input: {len(state_input)}")
+                    break
+
+                predictions = individual.predict(np.array([state_input]))
+                if np.isnan(predictions).any():
+                    print("Predição contém valores NaN.")
+                    break
+
+                action_idx = np.argmax(predictions)
+                current_action_bin = dec2bin(actions[action_idx], num_bits=9)
+                next_state, reward, done, info = env.step(current_action_bin)
+
                 my_reward = custom_reward(reward, info, previous_info)
                 total_reward += my_reward
-                #print(f"Pts: {total_reward} Info: {info}")
                 previous_info = info
+                step_count += 1
+
                 update_console(episode, num_episodes, generation=episode, score=total_reward)
-            scores.append(total_reward)  # Armazena a pontuação do indivíduo
-        
+            scores.append(total_reward + rominfo.getTimer(env))  # Armazena a pontuação do indivíduo
+
         # Seleção dos melhores indivíduos e geração de descendentes
         best_individuals_idx = np.argsort(scores)[-3:]
         best_individuals = [individuals[idx] for idx in best_individuals_idx]
-        offspring = generate_offspring(best_individuals)
+        offspring = generate_offspring(best_individuals, input_shape=input_shape)
         individuals = offspring  # Atualiza população
 
-        #print(f'Episódio {episode}/{num_episodes} | Pontuações: {scores}')
+        print(f'Episódio {episode}/{num_episodes} | Pontuações: {scores}')
+
 
 # Inicialização do ambiente e treinamento do modelo
 env = createEnv()
