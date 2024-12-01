@@ -205,6 +205,15 @@ def getTimer(env):
 
     return timer_value
 
+# Retorna True se na animacao de vitoria no fim da fase
+def getCleared(env):
+
+  cc_address = 0x1493
+  ram = env.get_ram()
+  cc = ram[cc_address]
+
+  return cc!=0
+
 def getBonusStars(env):
     """
     Obtém a contagem de estrelas bonus vermelhas do Mario $7E0F48
