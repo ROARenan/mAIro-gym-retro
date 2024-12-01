@@ -82,18 +82,17 @@ def training_model(env, num_episodes=1000, num_individuals=3, decision_interval=
             total_reward = 0
             done = False
             step_count = 0  # Contador para o intervalo de decisões
-            previous_info = {'coins': 0, 'lives': 4, 'score': 0, 'x': 16, 'y':352}
+            previous_info = {'coins': 0, 'lives': 4, 'score': 0, 'x': 16, 'y': 352}
             current_action_bin = dec2bin(random.choice(actions), num_bits=9)  # Ação inicial
-            
+
             while not done and rominfo.getLives(env) >= 5 and total_reward > -500:
                 env.render()
 
-                # Decisão da rede apenas a cada decision_interval passos
                 if step_count % decision_interval == 0:
                     # Obtenha o status de bloqueio e adicione ao estado
                     stuck_status = rominfo.getStuckStatus(env)
                     state_input = [
-                        previous_info["x"], # Posição X
+                        previous_info["x"],  # Posição X
                         previous_info["y"],
                         previous_info["coins"],
                         previous_info["score"],
@@ -109,7 +108,7 @@ def training_model(env, num_episodes=1000, num_individuals=3, decision_interval=
                     # Use o modelo para escolher a próxima ação
                     action_idx = np.argmax(individual.predict(np.array([state_input])))
                     current_action_bin = dec2bin(actions[action_idx], num_bits=9)
-                
+
                 # Executa a ação atual
                 next_state, reward, done, info = env.step(current_action_bin)
                 mario_pos = rominfo.getXY(rominfo.getRam(env))
@@ -124,7 +123,16 @@ def training_model(env, num_episodes=1000, num_individuals=3, decision_interval=
                 previous_info = info
                 step_count += 1  # Incrementa o contador
 
+                # Verifique se a condição foi atendida
+                if rominfo.getCleared(env):
+                    # Salve o modelo
+                    save_path = f"model_cleared_episode_{episode}.h5"
+                    individual.save(save_path)
+                    print(f"Modelo salvo em {save_path} (Episódio: {episode})")
+                    break  # Para salvar apenas o primeiro modelo que atender a condição
+
                 update_console(episode, num_episodes, generation=episode, score=total_reward)
+
             life_penalty = -1700 if info['lives'] < previous_info["lives"] else 0
             scores.append(total_reward + life_penalty + rominfo.getTimer(env))  # Armazena a pontuação do indivíduo
 

@@ -77,7 +77,9 @@ if __name__ == "__main__":
         if getLives(env) < 5 or env.data.is_done():
             print(f"Game Over! Total Reward: {total_reward}")
             break
-
+        if getCleared(env):
+            print(f"Fase Finalizada! Total Reward: {total_reward}")
+            break
     env.close()
 
 # Lista de ações possíveis para Mario
