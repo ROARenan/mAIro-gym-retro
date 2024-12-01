@@ -73,8 +73,6 @@ if __name__ == "__main__":
             state, reward, done, info = env.step(action)
             total_reward += reward
         print("Score:",getScore(env))
-        print("Timer:",getTimer(env))
-        print("Stars:",getBonusStars(env))
         # Checa se Mario perdeu todas as vidas
         if getLives(env) < 5 or env.data.is_done():
             print(f"Game Over! Total Reward: {total_reward}")

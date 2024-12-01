@@ -149,6 +149,15 @@ def getScore(env):
 
   return score_dec
 
+# Retorna True se na animacao de vitoria no fim da fase
+def getCleared(env):
+
+  cc_address = 0x1493
+  ram = env.get_ram()
+  cc = ram[cc_address]
+
+  return cc!=0
+
 def getStuckStatus(env):
     """
     Verifica se Mario está em contato com uma parede ou bloqueado em qualquer direção.
