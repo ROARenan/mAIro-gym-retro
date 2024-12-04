@@ -6,17 +6,16 @@ setup:
 	pip install -r requirements.txt
 
 test:
-	LANG=en_US
 	python test.py
 
 random:
-	LANG=en_US
 	python -m retro.examples.random_agent --game SuperMarioWorld-Snes
 
 brute:
-	LANG=en_US
 	python -m retro.examples.brute --game SuperMarioWorld-Snes
 
 replay:
-	LANG=en_US
 	python replay.py
+
+run:
+	python run.py
