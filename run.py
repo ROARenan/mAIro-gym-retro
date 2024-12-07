@@ -14,7 +14,7 @@ from utils import dec2bin
 
 class Mario_AI():
     episodes = 400
-    individuals = 2
+    individuals = 6
     decision_interval = 45
     input_shape = 14
     max_steps = 5000
