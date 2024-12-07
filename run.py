@@ -1,14 +1,24 @@
 import retro
 import random
-
 import rominfo
+import numpy as np
+import itertools
+
+from tensorflow.keras.models import Sequential
+from tensorflow.keras.layers import Dense
+from tensorflow.keras.optimizers import Adam
+
 from utils import dec2bin
+
+
+
 class Mario_AI():
     episodes = 400
     individuals = 2
     decision_interval = 45
-    input_shape = 42
+    input_shape = 14
     max_steps = 5000
+    max_sprites = 5
     actions_map = {'noop':0, 'down':32, 'up':16, 'jump':1, 'spin':3,
                     'left':64, 'jumpleft':65, 'runleft':66, 'runjumpleft':67,
                     'right':128, 'jumpright':129, 'runright':130, 'runjumpright':131,
@@ -18,6 +28,7 @@ class Mario_AI():
     def __init__(self, *args, **kwargs):
         self.env = self._createEnv()
         self.actions = self._getActions()
+        self.input_shape += self.max_sprites *4
 
     def _createEnv(self):
         return retro.make(game='SuperMarioWorld-Snes', state='YoshiIsland2', record=False)
@@ -51,40 +62,52 @@ class Mario_AI():
             current_action_bin = dec2bin(random.choice(self.actions))  # Ação inicial
 
             while not done:
+                step_count += 1
                 if rominfo.getLives(self.env) < 5:
+                    print("Died!")
                     break
-                if total_reward < -500:
+                if total_reward < -100:
+                    print("Bad Score!")
                     break
-                if step_count > max_steps:
+                if step_count > self.max_steps:
+                    print("Took too long!")
                     break
 
-                if step_count % 10 == 0:
+                if step_count % 20 == 0:
                     self.env.render()
 
-                state_input = self.get_input(previous_info)
-                predictions = model.predict(np.array([state_input]))
+                if step_count % self.decision_interval == 0:
+                    current_action_bin = self.decide(model, previous_info)
 
-                action_to_take = np.argmax(predictions)
-                current_action_bin = dec2bin(actions[action_to_take])
                 next_state, reward, done, info = self.env.step(current_action_bin)
 
-    def get_input(self, previous_info):
-        sprites = self.get_Sprites(self.env)
-        stuck = rominfo.getStuckStatus(self.env)
-        state_input = [
-                    *previous_info,
-                    *stuck,
-                    *sprites,
-                ]
+    def decide(self, model, previous_info):
+        state_input = self._build_input(previous_info)
+        predictions = model.predict(np.array([state_input]))
+        action_to_take = np.argmax(predictions)
+        return dec2bin(self.actions[action_to_take])
+
+    def _build_input(self, previous_info):
+        inputs = self.get_input(previous_info)
+        state_input = list(itertools.chain(*inputs))
         return state_input
 
-    def get_sprites():
+    def get_input(self, previous_info):
+        mario_pos = rominfo.getXY(rominfo.getRam(self.env))
+        sprites = list(itertools.chain(*[list(sprite.values()) for sprite in self.get_sprites()])) # turns dict in to a list of lists and flattens it
+        stuck = list(rominfo.getStuckStatus(self.env).values())
+        previous = list(previous_info.values())
+
+        inputs = [mario_pos, sprites, stuck, previous]
+        return inputs
+
+    def get_sprites(self):
         sprites = rominfo.getSprites(rominfo.getRam(self.env))
 
-        if len(sprites) > 12:
-            sprites = sprites[:12]
+        if len(sprites) > self.max_sprites:
+            sprites = sprites[:self.max_sprites]
 
-        while len(sprites) < 12:
+        while len(sprites) < self.max_sprites:
             empty_element = {
                 "id": 0,
                 "x": 0,

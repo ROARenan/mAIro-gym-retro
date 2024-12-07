@@ -18,4 +18,4 @@ replay:
 	python replay.py
 
 run:
-	python run.py
+	LANG=en_US python run.py
