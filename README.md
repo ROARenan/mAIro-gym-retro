@@ -1,261 +1,254 @@
 # mAIro-gym-retro
-mAIro-gym-retro
 
-[MarioAStar Base](https://folivetti.github.io/courses/IA/Pratica/Mario/MarioAStar.zip) projeto base do para ler os inputs e dados da ROM do SMW
-[Using Deep Reinforcement Learning To Play Atari Space Invaders](https://chloeewang.medium.com/using-deep-reinforcement-learning-to-play-atari-space-invaders-8d5159aa69ed)
+## Introdução
+
+**mAIro-gym-retro** é um projeto que utiliza aprendizado por reforço profundo para treinar uma IA a jogar _Super Mario World_ (SMW). O jogo é controlado através do framework **Gym-Retro**, que facilita a integração com emuladores de jogos retrô.
+
+-   Baseado no projeto [MarioAStar](https://folivetti.github.io/courses/IA/Pratica/Mario/MarioAStar.zip) para leitura de inputs e dados da ROM do SMW.
+-   Inspirado pelo artigo [Using Deep Reinforcement Learning To Play Atari Space Invaders](https://chloeewang.medium.com/using-deep-reinforcement-learning-to-play-atari-space-invaders-8d5159aa69ed).
 
 
-## Requirements
-- Python 3.8
-- Config Venv with Python 3.8
-- pip install gym==0.21.0
-- pip install gym-retro
+## Requisitos
 
-## Summary
-1. Download Tarball from [Python.org](https://www.python.org/downloads/release/python-3820/)
-2. Unzip to folder
-3. On the folder run ```sudo apt-get install -y build-essential```
-4. Run ```./configure --enable-optimizations``` to build
-5. Run ```make -j$(nproc)```, now compilling the source
-6. Run ```sudo make altinstall```, to fish installation
-7. Check the version ```python3.8 --version```
+-   **Python 3.8**
+-   Configuração de ambiente virtual com **Python 3.8**
+-   Instalações de dependências:
+    ```bash
+    pip install gym==0.21.0
+    pip install gym-retro
+    ```
 
-### Terminal
-```bash
-sudo apt update
-sudo apt install build-essential zlib1g-dev libncurses5-dev libgdbm-dev libnss3-dev libssl-dev libreadline-dev libffi-dev
-```
 
-```bash
-wget https://www.python.org/ftp/python/3.8.20/Python-3.8.20.tgz
-sudo apt-get install -y build-essential
-./configure --enable-optimizations
-make -j$(nproc)
-sudo make altinstall
-python3.8 --version
-```
----
+## Resumo de Instalação do Python 3.8
 
-## Install Python 3.8
+1. Faça o download do tarball do Python [aqui](https://www.python.org/downloads/release/python-3820/).
+2. Extraia o arquivo para uma pasta.
+3. Navegue até a pasta e instale dependências:
+    ```bash
+    sudo apt-get install -y build-essential
+    ```
+4. Configure e compile o código-fonte:
+    ```bash
+    ./configure --enable-optimizations
+    make -j$(nproc)
+    ```
+5. Finalize a instalação:
+    ```bash
+    sudo make altinstall
+    python3.8 --version
+    ```
 
-When installing Python 3.8 from source on Linux, you may want to **altinstall** it rather than simply installing it. This ensures that Python 3.8 is installed without overwriting the default `python` or `python3` versions on your system, which could break system dependencies.
+## Implementação
 
-To **altinstall** Python 3.8, follow these steps:
+O projeto utiliza uma abordagem de **Aprendizado por Reforço Profundo** para treinar uma IA que controla o Mario no _Super Mario World_.
 
-### 1. **Download Python 3.8 Source Code**
-   First, you need to download the Python 3.8 source code. You can do this from the official Python website or by using `wget`:
+### Estrutura do Treinamento
 
-   ```bash
-   cd /tmp
-   wget https://www.python.org/ftp/python/3.8.20/Python-3.8.20.tgz
-   ```
+1. **Ambiente**:
+   O ambiente de simulação é configurado usando **gym-retro** para carregar o jogo _Super Mario World_. Um conjunto reduzido de ações possíveis é definido para simplificar o controle do personagem Mario.
 
-   (Replace `3.8.10` with the desired version if necessary.)
+2. **Modelo de IA**:
+   A IA é baseada em uma rede neural construída com **Keras** e composta por:
 
-### 2. **Extract the Tarball**
+    - Camadas densas (fully connected) com funções de ativação _ReLU_.
+    - Saída linear para prever os _Q-values_ das ações disponíveis.
+    - Otimização feita com o otimizador **Adam**.
 
-   After downloading the Python tarball, extract it:
+3. **Recompensas Personalizadas**:
+   O sistema de recompensa foi configurado para priorizar ações que maximizam:
 
-   ```bash
-   tar -xvzf Python-3.8.10.tgz
-   ```
+    - Progresso horizontal no nível (posição `x`).
+    - Coleta de moedas.
+    - Aumento de pontuação.
+    - Conservação de vidas.
+      Penalidades são aplicadas para inatividade ou queda em buracos.
 
-### 3. **Install Dependencies**
+4. **Algoritmo Genético**:
+   O treinamento utiliza uma abordagem evolutiva, onde:
 
-   Before you can compile Python from source, make sure you have the necessary build dependencies installed. On a Debian-based system (like Ubuntu), you can install them with:
+    - Uma população inicial de redes neurais (indivíduos) é criada.
+    - Os melhores indivíduos de cada geração (com base em pontuações) são cruzados e mutados para gerar descendentes.
+    - A mutação adiciona variações aleatórias nos pesos das redes.
 
-   ```bash
-   sudo apt update
-   sudo apt install build-essential zlib1g-dev libncurses5-dev libgdbm-dev libnss3-dev libssl-dev libreadline-dev libffi-dev
-   ```
+5. **Ciclo de Treinamento**:
 
-   These are common dependencies for building Python. Some systems may require additional dependencies depending on the configuration.
+    - Cada episódio treina um conjunto de indivíduos.
+    - Os indivíduos executam ações no jogo com base em previsões da rede neural.
+    - O desempenho de cada indivíduo é avaliado pelo total de recompensas acumuladas.
+    - Redes com desempenho insuficiente são descartadas.
 
-### 4. **Configure the Build**
+6. **Decisões da IA**:
+    - O estado atual do jogo é convertido em uma entrada numérica para a rede neural.
+    - A IA seleciona a ação com o maior valor predito (baseado em _Q-values_).
+    - Ações são aplicadas no ambiente a cada intervalo de decisão.
 
-   Navigate to the extracted Python source directory:
+### Resultados Esperados
 
-   ```bash
-   cd Python-3.8.20
-   ```
+O objetivo da IA é completar níveis do jogo, aprendendo de forma autônoma estratégias eficazes para superar obstáculos, coletar moedas e alcançar a bandeira final.
 
-   Run the `./configure` script. You can use the `--prefix` option to specify the installation directory if you don't want to use the default `/usr/local/` path. But for `altinstall`, you won't need to change the prefix unless you have a custom location.
+## Como Usar
 
-   Run:
+1. Clone o repositório e configure o ambiente virtual:
 
-   ```bash
-   ./configure --enable-optimizations
-   ```
+    ```bash
+    cd mAIro-gym-retro
+    python3.8 -m venv venv
+    source venv/bin/activate
+    pip install -r requirements.txt
+    ```
 
-   The `--enable-optimizations` flag is optional, but it speeds up Python's runtime performance by optimizing the build.
+2. Certifique-se de ter a ROM de _Super Mario World_ configurada para **gym-retro**.
 
-### 5. **Altinstall Python 3.8**
+3. Inicie o treinamento:
 
-   Now, you can install Python 3.8 using `altinstall` to avoid overwriting the system’s default `python` or `python3` binary:
+    ```bash
+    python play.py
+    ```
 
-   ```bash
-   sudo make altinstall
-   ```
+4. Os modelos treinados serão salvos automaticamente ao atingir os critérios de desempenho.
 
-   This will install Python 3.8 as `python3.8` without replacing the default system `python3`.
+## Como Treinar
 
-### 6. **Verify the Installation**
-
-   After the installation is complete, verify that Python 3.8 is installed correctly:
-
-   ```bash
-   python3.8 --version
-   ```
-
-   This should output something like `Python 3.8.20`.
-
-### 7. **Install `pip` for Python 3.8**
-
-   Python 3.8 should come with `ensurepip`, which can install `pip` if it's missing. To install `pip` for Python 3.8, you can use the following command:
+É possível melhorar o desempenho do agente utilizando mais tempo de treinamento e melhores recompensas e inputs para a rede. Caso queira, realize as alterações e pode treiná-lo com:
 
    ```bash
-   python3.8 -m ensurepip --upgrade
+   train.py
    ```
 
-   This ensures that `pip` is available for your new Python installation.
+## Integrantes
 
-   Afterward, you can verify `pip` for Python 3.8:
-
-   ```bash
-   python3.8 -m pip --version
-   ```
-
-### 8. **Optional: Set Up Virtual Environments**
-
-   You can also set up a virtual environment using Python 3.8. First, install `venv` (if it's not already installed):
-
-   ```bash
-   python3.8 -m pip install --upgrade pip
-   ```
-
-   Then, create a virtual environment:
-
-   ```bash
-   python3.8 -m venv myenv
-   ```
-
-   This will create a `myenv` virtual environment using Python 3.8.
+- Arthur Norio Morita Osakawa _11202130323_
+- Gabriel Rameh de Souza _11202021256_
+- Karen Miky Sasai _11202130465_
+- Marcelo Goulart Salinas Vega _11201921598_
+- Matheus Marques _11201920383_
+- Renan Santana Ferreira _11202131332_
 
 ---
+# mAIro-gym-retro
 
-## Config Env
-```bash
-python3.8 -m venv marioenv #Create env named marioenv
-source marioenv/bin/activate #Activate marioenv
-python --version #To check if Python is 3.8
-```
+## Introdução
 
-### Libs
-We will need some libs
-- ```pip install --upgrade pip``` Before running other pip commands
-- ```pip install gym==0.21.0```
-- ```pip install gym-retro``` 
-- ```pip install tensorflow``` 
+**mAIro-gym-retro** é um projeto que utiliza aprendizado por reforço profundo para treinar uma IA a jogar _Super Mario World_ (SMW). O jogo é controlado através do framework **Gym-Retro**, que facilita a integração com emuladores de jogos retrô.
 
----
+-   Baseado no projeto [MarioAStar](https://folivetti.github.io/courses/IA/Pratica/Mario/MarioAStar.zip) para leitura de inputs e dados da ROM do SMW.
+-   Inspirado pelo artigo [Using Deep Reinforcement Learning To Play Atari Space Invaders](https://chloeewang.medium.com/using-deep-reinforcement-learning-to-play-atari-space-invaders-8d5159aa69ed).
 
-## Uninstall Pyton 3.8
-If you've installed Python 3.8 from source, uninstalling it is a bit more involved than with packages installed via a package manager (like `apt` on Ubuntu). Python doesn't include an automatic uninstall command when you install from source, so you'll need to manually remove the files associated with the installation.
 
-Here’s how you can uninstall Python 3.8 that was built from source:
+## Requisitos
 
-### 1. **Locate the Installation Directory**
-   When you built Python from source, you likely specified a directory where it was installed (or it used the default). The default location is usually `/usr/local/`, but it could also be another directory if you specified it during the `./configure` step.
+-   **Python 3.8**
+-   Configuração de ambiente virtual com **Python 3.8**
+-   Instalações de dependências:
+    ```bash
+    pip install gym==0.21.0
+    pip install gym-retro
+    ```
 
-   If you don't remember where Python was installed, you can try running the following to check where the Python 3.8 binary is located:
-   
+
+## Resumo de Instalação do Python 3.8
+
+1. Faça o download do tarball do Python [aqui](https://www.python.org/downloads/release/python-3820/).
+2. Extraia o arquivo para uma pasta.
+3. Navegue até a pasta e instale dependências:
+    ```bash
+    sudo apt-get install -y build-essential
+    ```
+4. Configure e compile o código-fonte:
+    ```bash
+    ./configure --enable-optimizations
+    make -j$(nproc)
+    ```
+5. Finalize a instalação:
+    ```bash
+    sudo make altinstall
+    python3.8 --version
+    ```
+
+## Implementação
+
+O projeto utiliza uma abordagem de **Aprendizado por Reforço Profundo** para treinar uma IA que controla o Mario no _Super Mario World_.
+
+### Estrutura do Treinamento
+
+1. **Ambiente**:
+   O ambiente de simulação é configurado usando **gym-retro** para carregar o jogo _Super Mario World_. Um conjunto reduzido de ações possíveis é definido para simplificar o controle do personagem Mario.
+
+2. **Modelo de IA**:
+   A IA é baseada em uma rede neural construída com **Keras** e composta por:
+
+    - Camadas densas (fully connected) com funções de ativação _ReLU_.
+    - Saída linear para prever os _Q-values_ das ações disponíveis.
+    - Otimização feita com o otimizador **Adam**.
+
+3. **Recompensas Personalizadas**:
+   O sistema de recompensa foi configurado para priorizar ações que maximizam:
+
+    - Progresso horizontal no nível (posição `x`).
+    - Coleta de moedas.
+    - Aumento de pontuação.
+    - Conservação de vidas.
+      Penalidades são aplicadas para inatividade ou queda em buracos.
+
+4. **Algoritmo Genético**:
+   O treinamento utiliza uma abordagem evolutiva, onde:
+
+    - Uma população inicial de redes neurais (indivíduos) é criada.
+    - Os melhores indivíduos de cada geração (com base em pontuações) são cruzados e mutados para gerar descendentes.
+    - A mutação adiciona variações aleatórias nos pesos das redes.
+
+5. **Ciclo de Treinamento**:
+
+    - Cada episódio treina um conjunto de indivíduos.
+    - Os indivíduos executam ações no jogo com base em previsões da rede neural.
+    - O desempenho de cada indivíduo é avaliado pelo total de recompensas acumuladas.
+    - Redes com desempenho insuficiente são descartadas.
+
+6. **Decisões da IA**:
+    - O estado atual do jogo é convertido em uma entrada numérica para a rede neural.
+    - A IA seleciona a ação com o maior valor predito (baseado em _Q-values_).
+    - Ações são aplicadas no ambiente a cada intervalo de decisão.
+
+### Resultados Esperados
+
+O objetivo da IA é completar níveis do jogo, aprendendo de forma autônoma estratégias eficazes para superar obstáculos, coletar moedas e alcançar a bandeira final.
+
+## Como Usar
+
+1. Clone o repositório e configure o ambiente virtual:
+
+    ```bash
+    cd mAIro-gym-retro
+    python3.8 -m venv venv
+    source venv/bin/activate
+    pip install -r requirements.txt
+    ```
+
+2. Certifique-se de ter a ROM de _Super Mario World_ configurada para **gym-retro**.
+
+3. Inicie o treinamento:
+
+    ```bash
+    python play.py
+    ```
+
+4. Os modelos treinados serão salvos automaticamente ao atingir os critérios de desempenho.
+
+## Como Treinar
+
+É possível melhorar o desempenho do agente utilizando mais tempo de treinamento e melhores recompensas e inputs para a rede. Caso queira, realize as alterações e pode treiná-lo com:
+
    ```bash
-   which python3.8
+   train.py
    ```
 
-   This should give you the full path to the Python binary, for example: `/usr/local/bin/python3.8`.
+## Integrantes
 
-   You can also check the prefix you used when building:
-
-   ```bash
-   cd /path/to/python/source/
-   make install
-   ```
-
-   If you didn’t specify a custom directory during the build, it should have installed to `/usr/local/`.
-
-### 2. **Remove Python Files**
-
-   If Python was installed with the default `prefix` of `/usr/local/`, you'll need to remove Python 3.8 files from the following locations:
-
-   - **Binaries:**
-
-     ```bash
-     sudo rm -rf /usr/local/bin/python3.8
-     sudo rm -rf /usr/local/bin/python3.8-config
-     sudo rm -rf /usr/local/bin/pip3.8
-     ```
-
-   - **Libraries:**
-
-     ```bash
-     sudo rm -rf /usr/local/lib/python3.8
-     ```
-
-   - **Include Files:**
-
-     ```bash
-     sudo rm -rf /usr/local/include/python3.8
-     ```
-
-   - **Man Pages:**
-
-     ```bash
-     sudo rm -rf /usr/local/share/man/man1/python3.8.1
-     ```
-
-   - **Site Packages:**
-
-     If you used `pip` to install packages into this Python installation, you may also want to remove the site packages:
-   
-     ```bash
-     sudo rm -rf /usr/local/lib/python3.8/site-packages
-     ```
-
-### 3. **Remove Configuration Files (Optional)**
-   
-   If you configured the build with a custom prefix or installation location, you'll need to remove files from that location. For example, check the configuration directory (typically `/usr/local/lib` or a similar directory):
-
-   ```bash
-   sudo rm -rf /usr/local/lib/python3.8
-   ```
-
-### 4. **Check for Leftover Files**
-   
-   After removing the main files, it’s a good idea to search for any remaining Python 3.8 files on your system that might have been installed outside the standard directories:
-
-   ```bash
-   sudo find / -name "python3.8*" -exec rm -rf {} \;
-   ```
-
-   This command will search your entire filesystem for files or directories related to Python 3.8 and remove them.
-
-### 5. **Remove the Build Files (Optional)**
-
-   If you still have the source directory where you built Python, you can remove it as well:
-
-   ```bash
-   rm -rf /path/to/python-source-directory
-   ```
-
-### 6. **Verify the Uninstallation**
-   
-   After removing the files, check if Python 3.8 has been successfully removed:
-
-   ```bash
-   python3.8 --version
-   ```
-
-   If the command returns an error saying that `python3.8` is not found, it means the uninstallation was successful.
+- Arthur Norio Morita Osakawa _11202130323_
+- Gabriel Rameh de Souza _11202021256_
+- Karen Miky Sasai _11202130465_
+- Marcelo Goulart Salinas Vega _11201921598_
+- Matheus Marques _11201920383_
+- Renan Santana Ferreira _11202131332_
 
 ---
