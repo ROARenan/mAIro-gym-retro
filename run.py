@@ -154,6 +154,9 @@ class Mario_AI():
         mario_x = info["x"]
         old_x = previous_info["x"]
 
+        # Lives reward
+        reward += (info["lives"] - previous_info["lives"]) * self.reward_weights["lives"]
+
         delta_pos = (mario_x - old_x)
         if delta_pos == 0:
             self.inactivity_steps += 1
